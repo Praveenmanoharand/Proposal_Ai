@@ -584,13 +584,13 @@
         /* Generate Button */
         .btn-generate {
             width: 100%;
-            padding: 20px 32px;
+            padding: 16px 24px;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             border: none;
             border-radius: var(--radius-md);
             color: var(--bg-primary);
             font-family: inherit;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 700;
             cursor: pointer;
             display: flex;
@@ -1471,12 +1471,67 @@
 
             .input-panel,
             .preview-content {
-                padding: 24px;
+                padding: 16px;
+                overflow-x: hidden;
             }
 
             .proposal-document {
-                padding: 24px;
+                padding: 16px;
                 font-size: 0.9rem;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+
+            .proposal-document table, .milestones-table {
+                display: block;
+                width: 100% !important;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .preview-header {
+                padding: 16px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .preview-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .btn-icon {
+                width: 36px;
+                height: 36px;
+            }
+
+            .preview-footer {
+                padding: 16px;
+            }
+
+            .preview-footer.visible {
+                flex-direction: column;
+                padding: 16px;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .preview-footer > div {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                gap: 8px !important;
+            }
+
+            .btn-secondary, .btn-primary {
+                padding: 10px 12px;
+                font-size: 0.8rem;
+                flex: 1;
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
             }
 
             .proposal-meta {
@@ -1626,6 +1681,44 @@
             transform: perspective(1500px) rotateX(0deg) translateY(0px) scale(1);
             filter: blur(0px);
         }
+        @media (max-width: 1024px) {
+            .reveal {
+                opacity: 1 !important;
+                transform: none !important;
+                filter: none !important;
+                transition: none !important;
+            }
+            .contact-layout-grid {
+                grid-template-columns: 1fr !important;
+                gap: 32px !important;
+            }
+            .contact-form-row {
+                grid-template-columns: 1fr !important;
+            }
+            .contact-inner-container {
+                padding: 0 20px !important;
+            }
+            #page-loader {
+                display: none !important;
+            }
+        }
+        
+        .contact-layout-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: start;
+        }
+        .contact-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .contact-inner-container {
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 0 40px;
+        }
     </style>
 </head>
 
@@ -1677,6 +1770,11 @@
                 <a href="#contact" class="nav-link">Contact</a>
                 <span id="headerPlanBadge" class="plan-badge-header"></span>
                 {% if user %}
+                {% if user.plan == 'free' or not user.plan %}
+                <a href="/payment?plan=pro" class="btn-nav btn-nav-primary" aria-label="Upgrade to Pro">Pro</a>
+                {% elif user.plan == 'pro' %}
+                <a href="/payment?plan=agency" class="btn-nav btn-nav-primary" aria-label="Upgrade to Agency">Agency</a>
+                {% endif %}
                 <span class="nav-link" style="color:var(--accent);font-weight:600;">Hi, {{ user.name }}</span>
                 <a href="/logout" class="btn-nav">Log Out</a>
                 {% else %}
@@ -1742,6 +1840,11 @@
                 <span id="mobilePlanBadge" class="plan-badge-header"
                     style="display:inline-block !important; margin:0;"></span>
             </div>
+            {% if user.plan == 'free' or not user.plan %}
+            <a href="/payment?plan=pro" class="btn-nav btn-nav-primary" style="text-align:center;">Pro</a>
+            {% elif user.plan == 'pro' %}
+            <a href="/payment?plan=agency" class="btn-nav btn-nav-primary" style="text-align:center;">Agency</a>
+            {% endif %}
             <a href="/logout" class="btn-nav" style="text-align:center;">Log Out</a>
             {% else %}
             <a href="/login" class="btn-nav" style="text-align:center;">Log In</a>
@@ -2327,7 +2430,7 @@
              CONTACT SECTION
              ======================== -->
         <section id="contact" class="reveal" style="padding: 120px 0; border-top: 1px solid var(--glass-border);">
-            <div style="max-width: 1200px; margin: 0 auto; padding: 0 40px;">
+            <div class="contact-inner-container">
 
                 <!-- Header -->
                 <div class="reveal" style="text-align: center; margin-bottom: 72px;">
@@ -2345,7 +2448,7 @@
                 </div>
 
                 <!-- Two-column Layout -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start;">
+                <div class="contact-layout-grid">
 
                     <!-- Left: Contact Info -->
                     <div class="reveal" style="display: flex; flex-direction: column; gap: 28px;">
@@ -2440,7 +2543,7 @@
 
                         <form id="contactForm" style="display: flex; flex-direction: column; gap: 18px;"
                             onsubmit="handleContactSubmit(event)">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                            <div class="contact-form-row">
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label class="form-label">Your Name</label>
                                     <input type="text" id="contactName" class="form-input" placeholder="Your Name"
@@ -2657,6 +2760,11 @@
         // --- Ultra Smooth Loader ---
         window.addEventListener('load', () => {
             const loader = document.getElementById('page-loader');
+            if (window.innerWidth <= 1024) {
+                if (loader) loader.style.display = 'none';
+                initPremiumInteractions();
+                return;
+            }
             if (loader) {
                 setTimeout(() => {
                     loader.classList.add('finish');

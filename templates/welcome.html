@@ -258,6 +258,20 @@
             border-color: transparent;
             box-shadow: 0 10px 30px rgba(147, 51, 234, 0.4);
         }
+
+        @media (max-width: 1024px) {
+            #loader {
+                display: none !important;
+            }
+            .reveal {
+                opacity: 1 !important;
+                transform: none !important;
+                transition: none !important;
+            }
+            body {
+                overflow-y: auto !important;
+            }
+        }
     </style>
 </head>
 
@@ -525,6 +539,14 @@
         // --- Premium Smooth Loader Logic ---
         document.addEventListener("DOMContentLoaded", () => {
             const loader = document.getElementById("loader");
+            
+            if (window.innerWidth <= 1024) {
+                if (loader) loader.style.display = 'none';
+                document.body.style.overflowY = 'auto';
+                initReveals();
+                return;
+            }
+            
             const fillBar = document.getElementById("loader-fill-bar");
             const percText = document.getElementById("loader-perc-text");
             const statusText = document.getElementById("loader-status");

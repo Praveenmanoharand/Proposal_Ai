@@ -78,6 +78,14 @@ def get_current_user() -> dict | None:
                 return user
             except Exception:
                 return None
+        elif session['user_id'] == 'demo_user':
+            return {
+                "_id": "demo_user",
+                "name": session.get('user_name', "Demo User"),
+                "email": "demo@example.com",
+                "plan": session.get('demo_plan', 'free'),
+                "subscription": {}
+            }
     return None
 
 
@@ -1110,11 +1118,10 @@ def request_payment_otp():
         return jsonify({"success": False, "error": "Login required"}), 401
     
     data = request.get_json() or {}
-    utr = data.get('utr', '').strip()
     plan = data.get('plan', '').lower()
     
-    if not utr or len(utr) < 10 or not plan:
-        return jsonify({"success": False, "error": "Invalid UTR or plan data"}), 400
+    if not plan:
+        return jsonify({"success": False, "error": "Invalid plan data"}), 400
         
     otp = str(secrets.randbelow(899999) + 100000) # 100000 to 999999
     expiry = datetime.utcnow().timestamp() + 60 # Strictly 60 seconds
@@ -1143,9 +1150,9 @@ def request_payment_otp():
             
             content = (
                 f"Hello {user.get('name', 'User')},\n\n"
-                f"Your 6-digit OTP to verify your UTR submission ({utr}) for the {plan.upper()} plan is:\n\n"
+                f"Your 6-digit Activation Code for the {plan.upper()} plan upgrade is:\n\n"
                 f"{otp}\n\n"
-                f"This code will expire in 60 seconds. Do not share it with anyone.\n\n"
+                f"This acts as a secure One-Time Password. It will expire in 60 seconds and cannot be reused after activation.\n\n"
                 f"ProposeAI Team"
             )
             msg.set_content(content)
@@ -1170,11 +1177,10 @@ def submit_payment():
         return jsonify({"success": False, "error": "Login required"}), 401
         
     data = request.get_json() or {}
-    utr = data.get('utr', '').strip()
     plan = data.get('plan', '').lower()
     otp_entered = data.get('otp', '').strip()
     
-    if not utr or not plan or plan not in PLAN_PRICES:
+    if not plan or plan not in PLAN_PRICES:
         return jsonify({"success": False, "error": "Invalid payment data"}), 400
         
     # --- OTP Validation Logic ---

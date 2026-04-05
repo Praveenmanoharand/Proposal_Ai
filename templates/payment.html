@@ -428,41 +428,78 @@
                 </button>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Transaction ID (UTR)</label>
-                <input type="text" id="utrInput" class="form-input" placeholder="Enter 12-digit UTR number"
-                    maxlength="12">
+            <button id="requestOtpBtn" class="btn-pay" onclick="requestOtp()" style="margin-bottom:20px; background:var(--glass-bg); border:1px solid var(--accent-primary); color:var(--accent-primary)">
+                Request Activation Code
+            </button>
+
+            <div class="form-group" id="otpGroup" style="display:none;">
+                <label class="form-label">Activation Code</label>
+                <input type="text" id="otpInput" class="form-input" placeholder="Enter 6-digit code from email"
+                    maxlength="6">
             </div>
 
-            <button id="activateBtn" class="btn-pay" onclick="activatePlan()">
+            <button id="activateBtn" class="btn-pay" onclick="activatePlan()" style="display:none;">
                 <span class="btn-text">Verify & Activate</span>
                 <div class="loader" id="payLoader"></div>
             </button>
 
             <div class="instructions">
-                Scan the QR code with any UPI app (GPay, PhonePe, Paytm). <br>
-                After payment is successful, enter the 12-digit UTR/Transaction ID above to activate your plan
-                instantly.
+                Scan the QR code to pay. After payment, click <b>Request Activation Code</b> and we'll send a 6-digit OTP to your registered email to activate your plan.
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+
+
+        async function requestOtp() {
+            const btn = document.getElementById('requestOtpBtn');
+            btn.innerHTML = 'Sending...';
+            btn.disabled = true;
+
+            try {
+                const otpReq = await fetch('/api/request-payment-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan: '{{ plan }}' })
+                });
+                const otpRes = await otpReq.json();
+                
+                if (!otpRes.success) throw new Error(otpRes.error || 'Failed to request OTP');
+
+                document.getElementById('otpGroup').style.display = 'block';
+                document.getElementById('activateBtn').style.display = 'flex';
+                btn.style.display = 'none';
+
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Code Sent',
+                    text: otpRes.message || 'Check your email for the 6-digit activation code.',
+                    background: '#111', color: '#fff', confirmButtonColor: '#00d4aa'
+                });
+            } catch (err) {
+                btn.innerHTML = 'Request Activation Code';
+                btn.disabled = false;
+                Swal.fire({
+                    icon: 'error', title: 'Error', text: err.message,
+                    background: '#111', color: '#fff', confirmButtonColor: '#00d4aa'
+                });
+            }
+        }
+
         async function activatePlan() {
-            const utr = document.getElementById('utrInput').value.trim();
+            const enteredOtp = document.getElementById('otpInput').value.trim();
             const btn = document.getElementById('activateBtn');
             const loader = document.getElementById('payLoader');
             const btnText = btn.querySelector('.btn-text');
 
-            if (utr.length < 10) {
+            if (enteredOtp.length !== 6) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Invalid UTR',
-                    text: 'Please enter a valid Transaction ID/UTR number from your payment receipt.',
-                    background: '#111',
-                    color: '#fff',
-                    confirmButtonColor: '#00d4aa'
+                    title: 'Invalid Code',
+                    text: 'Please enter the full 6-digit Activation Code.',
+                    background: '#111', color: '#fff', confirmButtonColor: '#00d4aa'
                 });
                 return;
             }
@@ -472,72 +509,18 @@
             loader.style.display = 'block';
 
             try {
-                // Step 1: Request OTP
-                const otpReq = await fetch('/api/request-payment-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ utr: utr, plan: '{{ plan }}' })
-                });
-                const otpRes = await otpReq.json();
-                
-                if (!otpRes.success) {
-                    throw new Error(otpRes.error || 'Failed to request OTP');
-                }
-
-                // Warn user in demo mode about the harcoded OTP if applicable
-                const otpStatusText = otpRes.message || 'A 6-digit OTP has been sent to your email. It expires in exactly 60 seconds.';
-
-                // Step 2: Show OTP Input Dialog
-                const { value: enteredOtp } = await Swal.fire({
-                    title: 'Verify Payment OTP',
-                    text: otpStatusText,
-                    input: 'text',
-                    inputPlaceholder: 'Enter 6-digit OTP',
-                    inputAttributes: {
-                        maxlength: 6,
-                        autocapitalize: 'off',
-                        autocorrect: 'off'
-                    },
-                    background: '#111',
-                    color: '#fff',
-                    confirmButtonColor: '#00d4aa',
-                    showCancelButton: true,
-                    cancelButtonColor: '#444',
-                    inputValidator: (value) => {
-                        if (!value || value.length < 6) {
-                            return 'Please enter the full 6-digit OTP';
-                        }
-                    }
-                });
-
-                if (!enteredOtp) {
-                    // User cancelled the prompt
-                    btn.disabled = false;
-                    btnText.style.display = 'inline-block';
-                    loader.style.display = 'none';
-                    return;
-                }
-
-                // Step 3: Verify OTP and Submit Payment
                 Swal.fire({
                     title: 'Verifying...',
                     text: 'Activating your plan securely',
                     allowOutsideClick: false,
-                    background: '#111',
-                    color: '#fff',
-                    didOpen: () => {
-                        Swal.showLoading()
-                    }
+                    background: '#111', color: '#fff',
+                    didOpen: () => { Swal.showLoading() }
                 });
 
                 const submitReq = await fetch('/api/submit-payment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        utr: utr,
-                        plan: '{{ plan }}',
-                        otp: enteredOtp.trim()
-                    })
+                    body: JSON.stringify({ plan: '{{ plan }}', otp: enteredOtp })
                 });
                 
                 const result = await submitReq.json();
@@ -547,14 +530,11 @@
                         icon: 'success',
                         title: 'Plan Activated!',
                         text: result.message,
-                        background: '#111',
-                        color: '#fff',
+                        background: '#111', color: '#fff',
                         confirmButtonColor: '#00d4aa',
                         timer: 3000,
                         showConfirmButton: false
-                    }).then(() => {
-                        window.location.href = '/dashboard';
-                    });
+                    }).then(() => window.location.href = '/dashboard');
                 } else {
                     throw new Error(result.error || 'Activation failed');
                 }
@@ -563,9 +543,7 @@
                     icon: 'error',
                     title: 'Verification Failed',
                     text: err.message,
-                    background: '#111',
-                    color: '#fff',
-                    confirmButtonColor: '#00d4aa'
+                    background: '#111', color: '#fff', confirmButtonColor: '#00d4aa'
                 });
                 btn.disabled = false;
                 btnText.style.display = 'inline-block';
@@ -573,16 +551,13 @@
             }
         }
 
-
         function copyUPI() {
             const upiId = '{{ upi_id }}';
             navigator.clipboard.writeText(upiId).then(() => {
                 const btn = document.querySelector('.copy-btn');
                 const originalHTML = btn.innerHTML;
                 btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                }, 2000);
+                setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
             });
         }
     </script>
