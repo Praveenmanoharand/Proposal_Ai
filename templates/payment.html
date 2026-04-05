@@ -267,26 +267,6 @@
             line-height: 1.6;
         }
 
-        /* Mobile Responsive */
-        @media (max-width: 850px) {
-            .payment-container {
-                grid-template-columns: 1fr;
-                padding: 32px;
-            }
-
-            .plan-info {
-                text-align: center;
-            }
-
-            .feature-list {
-                align-items: center;
-            }
-
-            .back-link {
-                display: none;
-            }
-        }
-
         /* Loader */
         .loader {
             width: 20px;
@@ -329,12 +309,81 @@
             transform: translateY(-2px);
         }
 
+        /* Mobile Responsive */
         @media (max-width: 850px) {
+            body {
+                padding: 12px;
+            }
+
+            .payment-container {
+                grid-template-columns: 1fr;
+                padding: 24px 20px;
+                gap: 32px;
+                border-radius: 20px;
+            }
+
+            .plan-info {
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .plan-info h1 {
+                font-size: 2rem;
+                margin-top: 10px;
+            }
+            
+            .price-tag {
+                font-size: 2.2rem;
+            }
+
+            .feature-list {
+                align-items: center;
+            }
+
+            .back-link {
+                display: inline-flex;
+                margin: 0 auto 20px auto;
+            }
+            
+            .payment-action {
+                padding: 24px 16px;
+                border-radius: 16px;
+                width: 100%;
+            }
+
             .btn-upi-mobile {
                 display: flex;
             }
+            
             .qr-card {
-                display: none; /* Hide QR on mobile to encourage button use */
+                display: block; 
+                padding: 12px;
+            }
+            
+            .qr-code {
+                width: 160px;
+                height: 160px;
+            }
+            
+            .upi-id {
+                word-break: break-all;
+                font-size: 0.75rem;
+                margin-bottom: 0;
+                text-align: center;
+                padding: 8px 12px;
+            }
+
+            .upi-container {
+                width: 100%;
+                justify-content: center;
+                gap: 10px;
+            }
+            
+            .btn-pay {
+                padding: 14px;
+                font-size: 0.95rem;
             }
         }
 
