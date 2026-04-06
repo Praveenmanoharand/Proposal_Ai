@@ -11,9 +11,10 @@ print(f"Email: '{admin_email}'")
 print(f"Pass length: {len(smtp_pass)}")
 
 try:
+    print(f"Attempting login for '{admin_email}'...")
     with smtplib.SMTP('smtp.gmail.com', 587) as server:
         server.starttls()
         server.login(admin_email, smtp_pass)
-        print("✅ Login Successful!")
+        print("SUCCESS: Login Successful!")
 except Exception as e:
-    print(f"❌ Login Failed: {e}")
+    print(f"FAILURE: Login Failed: {str(e)}")

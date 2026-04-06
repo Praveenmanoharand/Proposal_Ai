@@ -1770,11 +1770,6 @@
                 <a href="#contact" class="nav-link">Contact</a>
                 <span id="headerPlanBadge" class="plan-badge-header"></span>
                 {% if user %}
-                {% if user.plan == 'free' or not user.plan %}
-                <a href="/payment?plan=pro" class="btn-nav btn-nav-primary" aria-label="Upgrade to Pro">Pro</a>
-                {% elif user.plan == 'pro' %}
-                <a href="/payment?plan=agency" class="btn-nav btn-nav-primary" aria-label="Upgrade to Agency">Agency</a>
-                {% endif %}
                 <span class="nav-link" style="color:var(--accent);font-weight:600;">Hi, {{ user.name }}</span>
                 <a href="/logout" class="btn-nav">Log Out</a>
                 {% else %}
@@ -1840,11 +1835,6 @@
                 <span id="mobilePlanBadge" class="plan-badge-header"
                     style="display:inline-block !important; margin:0;"></span>
             </div>
-            {% if user.plan == 'free' or not user.plan %}
-            <a href="/payment?plan=pro" class="btn-nav btn-nav-primary" style="text-align:center;">Pro</a>
-            {% elif user.plan == 'pro' %}
-            <a href="/payment?plan=agency" class="btn-nav btn-nav-primary" style="text-align:center;">Agency</a>
-            {% endif %}
             <a href="/logout" class="btn-nav" style="text-align:center;">Log Out</a>
             {% else %}
             <a href="/login" class="btn-nav" style="text-align:center;">Log In</a>

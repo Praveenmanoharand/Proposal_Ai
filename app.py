@@ -1124,47 +1124,60 @@ def request_payment_otp():
         return jsonify({"success": False, "error": "Invalid plan data"}), 400
         
     otp = str(secrets.randbelow(899999) + 100000) # 100000 to 999999
-    expiry = datetime.utcnow().timestamp() + 60 # Strictly 60 seconds
+    # Increased to 5 minutes (300 seconds) for better user experience
+    expiry = datetime.utcnow().timestamp() + 300 
     
     is_demo = not (DB_CONNECTED and users_collection is not None)
     user_email = user.get("email", "").strip()
     
-    # If in demo mode, fallback to hardcoded OTP without sending real emails
+    print(f"DEBUG: OTP requested for user '{user.get('name')}' ({user_email}) - Plan: {plan}")
+
+    # Fallback for demo mode
     if is_demo or not user_email:
         session['payment_otp'] = {"otp": "123456", "expires_at": expiry + 3600}
-        return jsonify({"success": True, "message": "Demo Mode: Check alert for OTP!"})
+        print("DEBUG: Demo mode or empty email. Fallback OTP '123456' active.")
+        return jsonify({"success": True, "message": "Demo Mode: Check alert for OTP (Hint: 123456)"})
 
     session['payment_otp'] = {"otp": otp, "expires_at": expiry}
     
     try:
         admin_email = os.getenv("SMTP_EMAIL", "").strip()
         smtp_pass = os.getenv("SMTP_PASSWORD", "").strip()
-        if admin_email and smtp_pass:
-            import smtplib
-            from email.message import EmailMessage
+        
+        if not admin_email or not smtp_pass:
+            print("❌ SMTP credentials missing in .env - CANNOT SEND OTP")
+            return jsonify({"success": False, "error": "SMTP server not configured. Please contact admin."}), 503
             
-            msg = EmailMessage()
-            msg['Subject'] = f"ProposeAI - Verification OTP ({plan.upper()})"
-            msg['From'] = admin_email
-            msg['To'] = user_email
+        import smtplib
+        from email.message import EmailMessage
+        
+        msg = EmailMessage()
+        msg['Subject'] = f"ProposeAI - Activation OTP ({plan.upper()})"
+        msg['From'] = f"ProposeAI <{admin_email}>"
+        msg['To'] = user_email
+        
+        content = (
+            f"Hello {user.get('name', 'User')},\n\n"
+            f"Your 6-digit Activation Code for the {plan.upper()} plan upgrade is:\n\n"
+            f"{otp}\n\n"
+            f"Enter this code on the payment page to verify your purchase. It will expire in 5 minutes.\n\n"
+            f"ProposeAI Team"
+        )
+        msg.set_content(content)
+        
+        print(f"DEBUG: Attempting to send OTP email to {user_email} via {admin_email}...")
+        
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(admin_email, smtp_pass)
+            server.send_message(msg)
             
-            content = (
-                f"Hello {user.get('name', 'User')},\n\n"
-                f"Your 6-digit Activation Code for the {plan.upper()} plan upgrade is:\n\n"
-                f"{otp}\n\n"
-                f"This acts as a secure One-Time Password. It will expire in 60 seconds and cannot be reused after activation.\n\n"
-                f"ProposeAI Team"
-            )
-            msg.set_content(content)
-            
-            with smtplib.SMTP('smtp.gmail.com', 587) as server:
-                server.starttls()
-                server.login(admin_email, smtp_pass)
-                server.send_message(msg)
-                
-        return jsonify({"success": True, "message": "OTP sent to your email!"})
+        print(f"✅ OTP email sent successfully to {user_email}")
+        return jsonify({"success": True, "message": "Activation code sent to your email!"})
+
     except Exception as e:
         # Prevent lockouts if SMTP crashes by failing loudly back to the UI
+        print(f"❌ SMTP Error during OTP request: {str(e)}")
         session.pop('payment_otp', None)
         return jsonify({"success": False, "error": f"Failed to send OTP email: {str(e)}"}), 500
 
@@ -1179,6 +1192,7 @@ def submit_payment():
     data = request.get_json() or {}
     plan = data.get('plan', '').lower()
     otp_entered = data.get('otp', '').strip()
+    utr = "OTP_VERIFIED" # Default since it's verified via OTP session now
     
     if not plan or plan not in PLAN_PRICES:
         return jsonify({"success": False, "error": "Invalid payment data"}), 400
@@ -1190,7 +1204,7 @@ def submit_payment():
         
     if datetime.utcnow().timestamp() > stored.get("expires_at", 0):
         session.pop('payment_otp', None)
-        return jsonify({"success": False, "error": "OTP has expired after 60 seconds. Please request a new one."}), 400
+        return jsonify({"success": False, "error": "Code has expired. Please request a new one."}), 400
         
     if stored.get("otp") != otp_entered:
         return jsonify({"success": False, "error": "Invalid OTP entered. Please try again."}), 400
@@ -1217,7 +1231,6 @@ def submit_payment():
                             "status": "active",
                             "start_date": now.isoformat() + "Z",
                             "expiry_date": expiry.isoformat() + "Z",
-                            "utr": utr,
                             "last_updated": now.isoformat() + "Z"
                         }
                     }
